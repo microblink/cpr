@@ -28,6 +28,7 @@ endmacro()
 option(${BUILD_SHARED_LIBS} "Build libraries as shared libraries" ON)
 message(STATUS "C++ Requests CMake Options")
 message(STATUS "=======================================================")
+cpr_option(USE_CONAN_CURL "Use libcurl from conan package" ON )
 cpr_option(USE_SYSTEM_CURL
     "If ON, this project will look in the system paths for an installed curl library" OFF)
 cpr_option(BUILD_CPR_TESTS "Set to ON to build cpr tests." ON)
@@ -54,6 +55,10 @@ include(FetchContent)
 include(cmake/code_coverage.cmake)
 
 # Curl configuration
+if ( USE_CONAN_CURL )
+    add_library( CURL::libcurl ALIAS CONAN_PKG::libcurl )
+    set( CURL_FOUND ON )
+endif()
 if(USE_SYSTEM_CURL)
     find_package(CURL COMPONENTS PROTOCOLS HTTP HTTPS FEATURES SSL)
     if (CURL_FOUND)
@@ -65,9 +70,9 @@ if(USE_SYSTEM_CURL)
         endif()
     endif()
 endif()
-if(NOT USE_SYSTEM_CURL OR NOT CURL_FOUND)
+if(NOT CURL_FOUND)
     message(STATUS "Not using system Curl, using built-in curl project instead.")
-    
+
     set(BUILD_CURL_EXE OFF CACHE INTERNAL "" FORCE)
     set(BUILD_TESTING OFF CACHE INTERNAL "" FORCE)
     set(HTTP_ONLY ON CACHE INTERNAL "" FORCE)
@@ -83,7 +88,7 @@ if(NOT USE_SYSTEM_CURL OR NOT CURL_FOUND)
         set(CURL_CA_PATH "none" CACHE INTERNAL "" FORCE)
     endif()
 
-    if(USE_OPENSSL) 
+    if(USE_OPENSSL)
         set(CMAKE_USE_OPENSSL ON CACHE INTERNAL "" FORCE)
     endif()
 
@@ -106,7 +111,7 @@ if(NOT USE_SYSTEM_CURL OR NOT CURL_FOUND)
     if(BUILD_CURL_EXE)
         set_property(TARGET curl PROPERTY FOLDER "external")
     endif()
-        
+
     set_property(TARGET libcurl PROPERTY FOLDER "external")
 endif()
 
@@ -129,13 +134,13 @@ if(BUILD_CPR_TESTS)
                              GIT_PROGRESS           TRUE
                              USES_TERMINAL_DOWNLOAD TRUE)   # <---- This is needed only for Ninja to show download progress
         FetchContent_MakeAvailable(googletest)
-        
+
         add_library(gtest_int INTERFACE)
         target_link_libraries(gtest_int INTERFACE gtest)
         target_include_directories(gtest_int INTERFACE ${googletest_SOURCE_DIR}/include)
 
         add_library(GTest::GTest ALIAS gtest_int)
-       
+
         # Group under the "tests/gtest" project folder in IDEs such as Visual Studio.
     set_property(TARGET gtest PROPERTY FOLDER "tests/gtest")
     set_property(TARGET gtest_main PROPERTY FOLDER "tests/gtest")
@@ -157,7 +162,7 @@ if(BUILD_CPR_TESTS)
             set(ENABLE_SSL_TESTS OFF CACHE INTERNAL "")
     endif()
 
-    FetchContent_Declare(mongoose 
+    FetchContent_Declare(mongoose
                          GIT_REPOSITORY         https://github.com/cesanta/mongoose.git
                          GIT_TAG                80d74e9e341d541f71c0fa587d22cec89be32dd5 # the hash for 6.18
                          GIT_PROGRESS           TRUE

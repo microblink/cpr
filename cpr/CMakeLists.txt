@@ -29,3 +29,7 @@ set_target_properties(cpr
      SOVERSION ${${PROJECT_NAME}_VERSION_MAJOR})
 
 install(TARGETS cpr)
+
+if ( COMMAND make_universal )
+    make_universal( cpr )
+endif()
